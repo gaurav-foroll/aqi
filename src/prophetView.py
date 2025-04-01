@@ -11,7 +11,7 @@ from src.utils import checkCacheOrTrain
 @st.cache_resource
 def implProphet(filePath = "./data/air_quality.csv", cachePath = "./Cache/Prophet"):
     # Display basic information about FBProphet
-    st.title("FBProphet Model: Air Quality Prediction")
+    st.title("FB Prophet Model: Air Quality Prediction")
     
     st.write("""
         **FBProphet** is a forecasting tool designed to handle time series data. It is robust to missing data, shifts in the trend, and large outliers. 
@@ -102,6 +102,9 @@ def plotForecast(model , forecast, data):
     # Merge the forecast with actual values for comparison
     comparison = pd.merge(forecast[['ds', 'yhat']], data, on='ds')
     comparison.rename(columns={'yhat': 'y_predicted', 'y': 'y_actual'}, inplace=True)
+
+    # Check for missing or invalid data
+    st.write("Comparison Dataframe after merging: ", comparison.head())
     
     # Calculate evaluation metrics
     mae = mean_absolute_error(comparison['y_actual'], comparison['y_predicted'])
@@ -120,21 +123,66 @@ def plotForecast(model , forecast, data):
     fig1 = px.line(comparison, x='ds', y=['y_actual', 'y_predicted'], labels={'value': 'AQI', 'variable': 'Legend'}, title='Prophet: Actual vs Predicted AQI', color_discrete_map=color_map)
     st.plotly_chart(fig1)
 
-    # Plot residuals for Prophet
-    comparison['residuals'] = comparison['y_actual'] - comparison['y_predicted']
-    fig2 = px.scatter(comparison, x='ds', y='residuals', title='Residuals of Prophet Predictions' , color_discrete_sequence=['#1E90FF'])
-    fig2.add_shape(type='line', x0=comparison['ds'].min(), y0=0, x1=comparison['ds'].max(), y1=0, line=dict(color='#FF6347', dash='dash'))
+        # Filter the forecast for the next 30 days
+    forecast_30_days = forecast[forecast['ds'] > data['ds'].max()]
+
+    # Plot predicted AQI for the next 30 days (Plotly)
+    fig2 = px.line(forecast_30_days, x='ds', y='yhat', labels={'yhat': 'Predicted AQI'}, title='FBProphet: Predicted AQI for the Next 30 Days', color_discrete_map={'yhat': '#FF6347'})
     st.plotly_chart(fig2)
 
-    # Additional plot: AQI over time (original data)
-    fig3 = px.line(data, x='ds', y='y', title='Air Quality Index Over Time',color_discrete_sequence=['#1E90FF'])
+    # Plot residuals for Prophet
+    comparison['residuals'] = comparison['y_actual'] - comparison['y_predicted']
+    fig3 = px.scatter(comparison, x='ds', y='residuals', title='Residuals of Prophet Predictions' , color_discrete_sequence=['#1E90FF'])
+    fig3.add_shape(type='line', x0=comparison['ds'].min(), y0=0, x1=comparison['ds'].max(), y1=0, line=dict(color='#FF6347', dash='dash'))
     st.plotly_chart(fig3)
 
-    # Additional plot: Histogram of AQI values
-    fig4 = px.histogram(data, x='y', title='Distribution of AQI Values' , color_discrete_sequence=['#1E90FF'])
+    # Additional plot: AQI over time (original data)
+    fig4 = px.line(data, x='ds', y='y', title='Air Quality Index Over Time',color_discrete_sequence=['#1E90FF'])
     st.plotly_chart(fig4)
+
+    # Additional plot: Histogram of AQI values
+    fig5 = px.histogram(data, x='y', title='Distribution of AQI Values' , color_discrete_sequence=['#1E90FF'])
+    st.plotly_chart(fig5)
 
     # Plot Prophet components
     st.subheader("Prophet Model Components")
     components_fig = model.plot_components(forecast)
     st.pyplot(components_fig)
+
+    # plt.figure(figsize=(20, 6))
+    # plt.plot(comparison['ds'], comparison['y_actual'], label='Actual AQI', marker='o', color='#1E90FF')
+    # plt.plot(comparison['ds'], comparison['y_predicted'], label='Predicted AQI', marker='x', color='#FF6347')
+    # plt.title('Actual vs Predicted AQI (Matplotlib)', fontsize=16)
+    # plt.xlabel('Date')
+    # plt.ylabel('AQI')
+    # plt.legend()
+    # st.pyplot(plt)
+
+     # Add a Matplotlib plot for Predicted AQI (Next 30 Days)
+    plt.figure(figsize=(20, 6))
+    plt.plot(forecast_30_days['ds'], forecast_30_days['yhat'], label='Predicted AQI (Next 30 Days)', marker='x', color='#FF6347')
+    plt.title('Predicted AQI for the Next 30 Days (Matplotlib)', fontsize=16)
+    plt.xlabel('Date')
+    plt.ylabel('AQI')
+    plt.legend()
+    st.pyplot(plt)
+
+    # Add a Matplotlib plot for both Actual AQI (historical) and Predicted AQI (Next 30 Days)
+    plt.figure(figsize=(20, 6))
+
+    # Plot Actual AQI (Historical data)
+    plt.plot(comparison['ds'], comparison['y_actual'], label='Actual AQI', marker='o', color='#1E90FF')
+
+    # Plot Predicted AQI (Next 30 Days)
+    plt.plot(forecast_30_days['ds'], forecast_30_days['yhat'], label='Predicted AQI (Next 30 Days)', marker='x', color='#FF6347')
+
+    # Adding title and labels
+    plt.title('Actual vs Predicted AQI (Next 30 Days)', fontsize=16)
+    plt.xlabel('Date')
+    plt.ylabel('AQI')
+
+    # Adding a legend to differentiate the actual vs predicted values
+    plt.legend()
+
+    # Display the plot
+    st.pyplot(plt)
