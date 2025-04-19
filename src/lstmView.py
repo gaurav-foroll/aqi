@@ -9,6 +9,7 @@ import tensorflow as tf
 import plotly.express as px
 import matplotlib.pyplot as plt
 from src.utils import checkCacheOrTrain
+from sklearn.metrics import r2_score
 
 scaler = MinMaxScaler(feature_range=(0, 1))
 
@@ -179,15 +180,19 @@ def predictAndPlot(lstm_model,X_train , X_test , y_test ,testDataPath):
 
     # Calculate residuals for LSTM
     comparison_lstm['residuals'] = comparison_lstm['y_actual'] - comparison_lstm['y_predicted']
-
-        # Calculate evaluation metrics
+    # Evaluation metrics
     mae = mean_absolute_error(comparison_lstm['y_actual'], comparison_lstm['y_predicted'])
     rmse = root_mean_squared_error(comparison_lstm['y_actual'], comparison_lstm['y_predicted'])
+    r2 = r2_score(comparison_lstm['y_actual'], comparison_lstm['y_predicted'])
+    accuracy = 100 - (mae / comparison_lstm['y_actual'].mean()) * 100
 
-    # Streamlit layout for LSTM
+    # Display metrics
     st.title("Air Quality Index Prediction")
-    st.markdown(f"##### LSTM Prophet Model - Mean Absolute Error: <span style='color:red;'>{mae}</span>", unsafe_allow_html=True)
-    st.markdown(f"##### LSTM prophet Model - Root Mean Square Error: <span style='color:red;'>{rmse}</span>", unsafe_allow_html=True)
+    st.markdown(f"##### LSTM Model - Mean Absolute Error: <span style='color:red;'>{mae:.2f}</span>", unsafe_allow_html=True)
+    st.markdown(f"##### LSTM Model - Root Mean Square Error: <span style='color:red;'>{rmse:.2f}</span>", unsafe_allow_html=True)
+    st.markdown(f"##### LSTM Model - R² Score (Explained Variance): <span style='color:green;'>{r2:.2%}</span>", unsafe_allow_html=True)
+    st.markdown(f"##### LSTM Model - Estimated Accuracy: <span style='color:green;'>{accuracy:.2f}%</span>", unsafe_allow_html=True)
+
 
     # Plot actual vs predicted for LSTM
     fig2 = px.line(comparison_lstm, x='ds', y=['y_actual', 'y_predicted'], labels={'value': 'AQI', 'variable': 'Legend'}, title='LSTM: Actual vs Predicted AQI')

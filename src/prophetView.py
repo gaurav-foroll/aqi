@@ -118,6 +118,16 @@ def plotForecast(model , forecast, data):
     'y_actual': '#1E90FF',  # Change 'blue' to your desired color for actual values
     'y_predicted': '#FF6347'  # Change 'red' to your desired color for predicted values
     }
+    from sklearn.metrics import r2_score
+
+    # Calculate additional metrics
+    r2 = r2_score(comparison['y_actual'], comparison['y_predicted'])
+    accuracy = 100 - (mae / comparison['y_actual'].mean()) * 100
+
+    # Display metrics in Streamlit
+    st.markdown(f"##### FB Prophet Model - R² Score (Explained Variance): <span style='color:green;'>{r2:.2%}</span>", unsafe_allow_html=True)
+    st.markdown(f"##### FB Prophet Model - Estimated Accuracy: <span style='color:green;'>{accuracy:.2f}%</span>", unsafe_allow_html=True)
+
 
     # Plot actual vs predicted for Prophet
     fig1 = px.line(comparison, x='ds', y=['y_actual', 'y_predicted'], labels={'value': 'AQI', 'variable': 'Legend'}, title='Prophet: Actual vs Predicted AQI', color_discrete_map=color_map)
